@@ -4,9 +4,12 @@ import { config } from '../config.js';
 // The imports above are supplied so students can use jwt and config.jwtSecret.
 export function authenticateToken(req, res, next) {
   const auth = req.get("authorization");
-  const token = auth.split(" ")[1];
-  if (!token) {
+  const token = auth.split(" ");
+  
+  if (!token[1]) {
     return res.status(401).json({ error: "Authentication required" });
+  } else if (!token[0].contains("Bearer")) {
+    return res.status(401).json({ error: "Request must include a Bearer token" });
   }
 
   try {
