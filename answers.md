@@ -1,6 +1,7 @@
 # Nicholas Garner Final
 
 ## Part 1
+---
 ### 1. Authentication vs. Authorization
 
 Authentication involves confirming the identity of the user. Authorization involves determining what a user is allowed
@@ -73,7 +74,7 @@ A `202` status code can be returned for a job that is accepted but not acted upo
 `200` status code for requests about the status of the operation.
 
 ## Part 2
-
+---
 ### 1. Authentication and Authorization
 
 | Request | Decision | Status Code |
@@ -135,3 +136,73 @@ The method for checking the report status would be `GET` + the url returned by t
 
 The background worker would update the database entry with the success/fail status of the report generation as well
 as the final report download url.
+
+## Part 3
+---
+### 4. Error Classification
+| Situation | Status Code |
+| --------- | ----------- |
+| No access token was provided | `401` |
+| The JWT has expired | `401` |
+| The JWT signature is invalid | `401` |
+| A validly authenticated student attempts an instructor-only operation | `403` |
+
+## Part 4
+---
+### 2. Database and Asynchronous Behavior
+
+The task id is included as a parameter because the basic `GET /` route is used to get the identity information of the
+user. Including the task id in the route creates a separate, distinct route that is dedicated to getting tasks.
+
+Await must be used with db.query because the database query function is asynchronous and returns a promise if await
+is not used. Await signals the program to wait for the query to finish so that it actually returns the data.
+
+## Part 5
+---
+### 3. Queue Behavior
+
+The API returns `202 Accepted` because it does not immediately complete the operation. It delegates the job to the
+report creator. An advantage of this is that the server can process other requests while the report generator
+works in the background.
+
+## Part 7
+---
+### 1. Following a Request Through The System
+The `GET /tasks/{id}` request is routed to the correct route handler for that HTTP method. Before any of the logic
+inside the route handler is executed, the authentication and authorization middleware functions are executed.
+The authentication function checks to see if a Bearer is present in the request. The token is then validated using the
+JWT secret to determine the identity of the user. If the user could not be authenticated, a `401` error is returned.
+
+After identity has been determined, the authorization middleware function checks if the user has the correct role to
+access the route. The roles needed to access this particular route are `student` or `user`.
+
+If the user is determined to have the correct role, the route logic can execute. The URL parameter is used to
+query the database for a task. If that task is not owned by the user who made the rquest, or the user is not
+an instructor, a `403` error is returned. If the task does not exist, a `404` error is returned. If the request was
+successfull, a `200` status message is returned with the task json object.
+
+### 2. Synchronous vs Asynchronous Processing
+One operation that could be completed directly is a health check on the service. The service only needs to return a `200`
+status code to the client if it is running.
+
+An operation more suited to a message queue would be data compression. Depending on the algorithm, data compression can
+be computationally expensive and take a long time to complete. The client could send a request to compress some piece of
+data, and the server could immediately respond with a `202` status saying that it has started the job. A database
+could be used to track the status of the job by storing the status and the compressed data download link. Failures
+could be handled by marking the task as failed in the database. Tasks that fail could be reloaded into the message queue
+for the background worker to attempt again.
+
+### 3. Lessons Learned
+
+The first practice I would recommend integrating into the API is authentication and authorization. If the API is
+expected to be used by many users, it is critical to ensure that the users only have access to resources and actions
+that they should be accessing. This prevents users from obtaining data that they should not have access to.
+
+The next practice I would recommend is database integration. Database storage is persistent and does not disappear if
+the server goes down. In addition, databases help make the service more scalable. If more than one server is running,
+they likely both need access to the same data. Having only in-memory storage would make it difficult to scale the service.
+
+Finally, if the service is expected to perform any operation that is computationally expensive, I would recommend using
+asynchronous processing to offload the expensive parts of computation onto a background worker. The server could
+accept the request from the user and create a job for the background worker to do. The server would then still be
+avaialable to respond to subsequent requests from other users (or the same user) without being bogged down.
