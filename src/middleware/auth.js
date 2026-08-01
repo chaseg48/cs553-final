@@ -3,14 +3,28 @@ import { config } from '../config.js';
 
 // The imports above are supplied so students can use jwt and config.jwtSecret.
 export function authenticateToken(req, res, next) {
-  // TODO(PART 3): Validate the Bearer JWT and set req.user before calling next().
-  return res.status(501).json({ error: 'Authentication is not implemented yet.' });
+  const auth = req.get("authorization");
+  const token = auth.split(" ")[1];
+  if (!token) {
+    return res.status(401).json({ error: "Authentication required" });
+  }
+
+  try {
+    const payload = jwt.verify(token, config.jwtSecret);
+    req.user = { sub: payload.sub, role: payload.role };
+    next();
+  } catch {
+    return res.status(401).json({ error: "Authentication required" });
+  }
 }
 
 export function requireRole(...allowedRoles) {
   return (req, res, next) => {
-    // TODO(PART 3): Authorize req.user.role against allowedRoles before calling next().
-    return res.status(501).json({ error: 'Authorization is not implemented yet.' });
+    if (allowedRoles.includes(req.user.role)) {
+      next();
+    } else {
+    return res.status(403).json({ error: "Forbidden" });
+    }
   };
 }
 

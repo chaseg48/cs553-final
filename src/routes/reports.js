@@ -8,13 +8,11 @@ export const reportsRouter = Router();
 
 reportsRouter.post('/', authenticateToken, async (req, res, next) => {
   try {
-    // TODO(PART 5): Create a pending report job with db.createReportJob().
-    // TODO(PART 5): Send { jobId, studentId } to reportQueue.
-    // TODO(PART 5): Return 202 with jobId, status, and statusUrl.
-    // TODO(PART 5): Do not call generateReport() from this request handler.
     const jobId = randomUUID();
     const studentId = req.user.sub;
-    return res.status(501).json({ error: 'Report submission is not implemented yet.' });
+    const pendingJob = await db.createReportJob({id: jobId, studentId: studentId, status: "pending"});
+    reportQueue.send({ jobId, studentId });
+    return res.status(202).json({ jobId: jobId, status: "pending", statusUrl: String("/reports/" + jobId) });
   } catch (error) {
     return next(error);
   }

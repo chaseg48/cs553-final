@@ -1,0 +1,389 @@
+openapi: 3.0.3
+
+info:
+  title: CS553 Final Exam
+  version: 1.0.0
+  description: >
+    HTTP API to manage tasks and generate reports.
+
+servers:
+  - url: http://localhost:3000
+    description: Local development server
+
+security:
+  - bearerAuth: []
+
+paths:
+  /tasks:
+    get:
+      summary: Get tasks owned by user.
+      description: Returns the tasks that are owned by the user making the request.
+      responses:
+        "200":
+          description: OK response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TasksListResponse"
+              example:
+                userId: "djs001"
+                tasks: []
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+    post:
+      summary: Create a new task.
+      description: Create a new task and store it in the database.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TaskInput"
+            example:
+              title: Watch Week 6 Lecture
+              course: CS553
+              studentId: djs001
+              completed: false
+      responses:
+        "201":
+          $ref: "#/components/responses/SuccessfullTaskResponse"
+        "400":
+          $ref: "#/components/responses/InvalidRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+  
+  /tasks/{id}:
+    get:
+      summary: Return single task.
+      description: Return a task if owned by the student. Instructors may return any task.
+      parameters:
+        - $ref: "#/components/parameters/TaskId"
+      responses:
+        "200":
+          $ref: "#/components/responses/SuccessfullTaskResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+    put:
+      summary: Replace a task.
+      description: Replace a task if the student owns it. Instructors can replace any task.
+      parameters:
+        - $ref: "#/components/parameters/TaskId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TaskInput"
+            example:
+              title: Watch Week 6 Lecture
+              course: CS553
+              studentId: djs001
+              completed: false
+      responses:
+        "200":
+          $ref: "#/components/responses/SuccessfullTaskResponse"
+        "400":
+          $ref: "#/components/responses/InvalidRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+    patch:
+      summary: Partially update a task.
+      description: Update a task if the student owns it. Instructors can update any task.
+      parameters:
+        - $ref: "#/components/parameters/TaskId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateTaskInput"
+            example:
+              title: Watch Week 6 Lecture
+              course: CS553
+              studentId: djs001
+              completed: false
+      responses:
+        "200":
+          $ref: "#/components/responses/SuccessfullTaskResponse"
+        "400":
+          $ref: "#/components/responses/InvalidRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+    delete:
+      summary: Delete a task.
+      description: Delete a task if the student owns it. Instructors can delete any task.
+      parameters:
+        - $ref: "#/components/parameters/TaskId"
+      responses:
+        "204":
+          $ref: "#/components/responses/Delete"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+          
+  /reports:
+    post:
+      summary: Generate a report.
+      description: Generate a report for the student.
+      responses:
+        "202":
+          $ref: "#/components/responses/Accepted"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+  /reports/{id}:
+    get:
+      summary: Get a report.
+      description: Get a report by Id that has previously begun or finished generation.
+      parameters:
+        - $ref: "#/components/parameters/ReportId"
+      responses:
+        "200":
+          $ref: "#/components/responses/SuccessfullReportResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+      
+
+components:
+  parameters:
+    TaskId:
+      name: id
+      in: path
+      required: true
+      description: The task Id from the URL path.
+      schema:
+        type: string
+        example: task-001
+            
+    ReportId:
+      name: id
+      in: path
+      required: true
+      description: The report Id from the URL path.
+      schema:
+        type: string
+        example: report-17
+
+  responses:
+    InvalidRequest:
+      description: Invalid request.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+          example:
+            error: Invalid request
+
+    Unauthorized:
+      description: User is not authenticated.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+          example:
+            error: Authentication needed
+
+    Forbidden:
+      description: User is not authorized to access resource.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+          example:
+            error: Forbidden
+
+    NotFound:
+      description: The resource could not be found.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+          example:
+            error: Not found
+
+    Delete:
+      description: Task deleted.
+
+    Accepted:
+      description: Response to generate a report.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ReportPostResponse"
+          example:
+            jobId: report-17
+            status: pending
+            statusUrl: /reports/report-17
+
+    SuccessfullTaskResponse:
+        description: Successfull task get, post, put or patch.
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/Task"
+            example:
+              id: task-001
+              title: Watch Week 6 Lecture
+              course: CS553
+              studentId: djs001
+              completed: false
+
+    SuccessfullReportResponse:
+        description: Successfull report get.
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ReportGetResponse"
+            example:
+              id: report-17
+              studentId: djs001
+              status: finished
+              downloadUrl: /reports/report-17.json
+
+  schemas:
+    Task:
+      type: object
+      properties:
+        id:
+          type: string
+          example: task-001
+        title:
+          type: string
+          example: Watch Week 6 lecture
+        course:
+          type: string
+          example: CS553
+        studentId:
+          type: string
+          example: djs001
+        completed:
+          type: boolean
+          example: false
+      required:
+        - id
+        - title
+        - course
+        - studentId
+        - completed
+
+    TasksListResponse:
+      type: object
+      properties:
+        userId:
+          type: string
+          example: djs001
+        tasks:
+          type: array
+          items:
+            $ref: "#/components/schemas/Task"
+      required:
+        - tasks
+
+    ReportGetResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          example: report-17
+        studentId:
+          type: string
+          example: djs001
+        status:
+          type: string
+          example: pending
+        downloadUrl:
+          type: string
+          example: /reports/report-17.json
+      required:
+        - id
+        - studentId
+        - status
+        - downloadUrl
+
+    ReportPostResponse:
+      type: object
+      properties:
+        jobId:
+          type: string
+          example: report-17
+        status:
+          type: string
+          example: pending
+        statusUrl:
+          type: string
+          example: /reports/report-17
+      required:
+        - jobId
+        - status
+        - statusUrl
+
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: string
+          example: Authentication required
+      required:
+        - error
+
+    TaskInput:
+      type: object
+      properties:
+        title:
+          type: string
+          example: Watch Week 6 Lecture
+        course:
+          type: string
+          example: CS553
+        studentId:
+          type: string
+          example: djs001
+        completed:
+          type: boolean
+          example: false
+      required:
+        - title
+        - course
+        - studentId
+        - completed
+
+    UpdateTaskInput:
+        type: object
+        properties:
+          title:
+            type: string
+            example: Watch Week 6 Lecture
+          course:
+            type: string
+            example: CS553
+          studentId:
+            type: string
+            example: djs001
+          completed:
+            type: boolean
+            example: false
+
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
